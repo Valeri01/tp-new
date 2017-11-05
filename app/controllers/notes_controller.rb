@@ -24,18 +24,32 @@ class NotesController < ApplicationController
   # POST /notes
   # POST /notes.json
   def create
-    @note = Note.new(note_params)
+    if request.content_type =~ /xml/
+      params[:message] = Hash.from_xml(request.body.read)["message"]
+      note = Note.create(content: params[:message])
+      render xml:
+      '<?xml version = "1.0" encoding = "UTF-8" standalone = "yes"?>' +
+      '<url>' +
+        notes_url + "/" + note.id.to_s +
+      '</url>'
+    elsif request.content_type =~ /json/
+      note = Note.create(content: params[:message])
+      render json: {url: notes_url +  "/" + note.id.to_s }
+    elsif request.content_type =~ /form/
+  
+	@note = Note.new(note_params)
 
-    respond_to do |format|
-      if @note.save
-    format.html { render "info", locals: {url: "localhost:3000/notes/" + @note.id.to_s } }
+		respond_to do |format|
+			if @note.save
+				format.html { render "info", locals: {url: notes_url + '/' + @note.id.to_s } }
 
-        format.json { render :show, status: :created, location: @note }
-      else
-        format.html { render :new }
-        format.json { render json: @note.errors, status: :unprocessable_entity }
-      end
-    end
+				format.json { render :show, status: :created, location: @note }
+			else
+				format.html { render :new }
+				format.json { render json: @note.errors, status: :unprocessable_entity }
+			end
+		end
+	end
   end
 
   # PATCH/PUT /notes/1
@@ -72,4 +86,6 @@ class NotesController < ApplicationController
     def note_params
       params.require(:note).permit(:content)
     end
-end
+end 
+
+
